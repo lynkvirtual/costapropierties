@@ -51,14 +51,14 @@ iframe{width:100%;height:340px;border:0;border-radius:20px}
 <main id="app"></main>
 <script>
 // ====== CONFIGURACIÓN (pegar datos de Supabase > Project Settings > API) ======
-const SB_URL='https://TU-PROYECTO.supabase.co', SB_KEY='TU-ANON-KEY', WA='523314365457';
+const SB_URL='https://nzvymnonhjyfhmhnarzn.supabase.co', SB_KEY='sb_publishable_AiboQE3yv7tXurBqph_NHg_20J4L2CP', WA='523314365457';
 // ===============================================================================
 const SERV=['Desarrollos inmobiliarios','Lotificaciones','Avalúos','Compra y venta','Rentas vacacionales','Construcción y remodelación','Administración de inmuebles','Levantamientos topográficos','Asesoría jurídica inmobiliaria','Renta de maquinaria','Diseños'];
 const CATS=['Casas','Departamentos','Terrenos','Locales','Desarrollos','Rentas vacacionales'];
 const $=document.getElementById('app');let DATA=[],F={op:'',cat:''};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=p=>p.precio?new Intl.NumberFormat('es-MX').format(p.precio)+' '+esc(p.moneda||'MXN'):'Consultar precio';
-async function load(){try{const r=await fetch(SB_URL+'/rest/v1/propiedades?publicada=eq.true&order=creado.desc',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});DATA=r.ok?await r.json():[]}catch(e){DATA=[]}route()}
+async function load(){try{const r=await fetch(SB_URL+'/rest/v1/propiedades?publicada=eq.true&order=creado.desc',{headers:{apikey:SB_KEY}});DATA=r.ok?await r.json():[]}catch(e){DATA=[]}route()}
 function reveal(){const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');o.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.rv').forEach(x=>o.observe(x))}
 function card(p){return `<a class="card rv" href="#/p/${p.id}"><div class="ph" style="${p.fotos&&p.fotos[0]?`background-image:url('${esc(p.fotos[0])}')`:''}"><span class="tag">${esc(p.operacion)}</span></div><small>${esc(p.categoria)} · ${esc((p.direccion||'').split(',')[0])}</small><h3>${esc(p.titulo)}</h3><b>${money(p)}${p.operacion==='renta'?' / mes':''}</b></a>`}
 function home(){const L=DATA.filter(p=>(!F.op||p.operacion===F.op)&&(!F.cat||p.categoria===F.cat));
