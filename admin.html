@@ -20,18 +20,21 @@ button.s{background:none;color:#12305c;border:1px solid #12305c;padding:8px 16px
 <form id="lg"><label>Correo<input id="em" type="email" required></label><label>Contraseña<input id="pw" type="password" required></label><button>Entrar</button></form>
 <div id="ad" class="hide">
 <button class="s" id="out" type="button">Cerrar sesión</button>
-<h2>Nueva propiedad</h2>
+<h2 id="ft">Nueva propiedad</h2>
 <form id="f">
 <label>Título<input name="titulo" required></label>
 <div class="r"><label>Operación<select name="operacion"><option value="compra">Compra</option><option value="renta">Renta</option></select></label>
 <label>Categoría<select name="categoria"><option>Casas</option><option>Departamentos</option><option>Terrenos</option><option>Locales</option><option>Desarrollos</option><option>Rentas vacacionales</option></select></label></div>
 <div class="r"><label>Precio<input name="precio" type="number" step="any"></label><label>Moneda<select name="moneda"><option>MXN</option><option>USD</option></select></label></div>
+<label>Periodo de renta (solo aplica si es renta)<select name="periodo"><option value="mes">Por mes</option><option value="dia">Por día</option><option value="semana">Por semana</option></select></label>
 <label>Dirección completa (se usa para el mapa)<input name="direccion"></label>
 <label>Descripción<textarea name="descripcion" rows="5"></textarea></label>
 <div class="r"><label>Recámaras<input name="recamaras" type="number"></label><label>Baños<input name="banos" type="number"></label>
 <label>Terreno m²<input name="terreno_m2" type="number" step="any"></label><label>Construcción m²<input name="construccion_m2" type="number" step="any"></label></div>
+<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="publicada" checked style="width:auto;margin:0"> Publicada en el sitio</label>
+<label id="rpl" class="hide" style="display:none;gap:8px;align-items:center"><input type="checkbox" id="rp" style="width:auto;margin:0"> Reemplazar las fotos actuales (si no, las nuevas se agregan)</label>
 <label>Fotos (la primera es la portada)<input id="ph" type="file" accept="image/*" multiple></label>
-<button>Guardar propiedad</button></form>
+<button id="sv">Guardar propiedad</button> <button class="s" id="cn" type="button" style="display:none">Cancelar edición</button></form>
 <p id="msg" role="status"></p>
 <h2>Propiedades publicadas</h2><div id="ls"></div>
 </div>
@@ -43,12 +46,19 @@ const say=t=>$('msg').textContent=t;
 function show(){$('lg').classList.toggle('hide',!!T);$('ad').classList.toggle('hide',!T);if(T)list()}
 $('lg').onsubmit=async e=>{e.preventDefault();const r=await fetch(SB_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:$('em').value,password:$('pw').value})});const j=await r.json();if(!r.ok)return alert('Correo o contraseña incorrectos');T=j.access_token;sessionStorage.setItem('t',T);show()};
 $('out').onclick=()=>{sessionStorage.removeItem('t');T=null;show()};
-async function list(){const r=await fetch(SB_URL+'/rest/v1/propiedades?select=id,titulo,operacion,categoria&order=creado.desc',{headers:H()});if(r.status===401){$('out').click();return}
-const d=await r.json();$('ls').innerHTML='';d.forEach(p=>{const row=document.createElement('div');row.className='it';const s=document.createElement('span');s.textContent=`${p.titulo} · ${p.operacion} · ${p.categoria}`;const b=document.createElement('button');b.className='s';b.textContent='Eliminar';b.onclick=async()=>{if(!confirm('¿Eliminar "'+p.titulo+'"?'))return;await fetch(SB_URL+'/rest/v1/propiedades?id=eq.'+p.id,{method:'DELETE',headers:H()});list()};row.append(s,b);$('ls').append(row)})}
-$('f').onsubmit=async e=>{e.preventDefault();say('Subiendo fotos…');const fd=new FormData(e.target),o={};
-fd.forEach((v,k)=>{o[k]=v===''?null:v});['precio','recamaras','banos','terreno_m2','construccion_m2'].forEach(k=>{if(o[k]!=null)o[k]=Number(o[k])});
-o.fotos=[];for(const f of $('ph').files){const n=Date.now()+'-'+f.name.replace(/[^\w.-]/g,'_');const u=await fetch(SB_URL+'/storage/v1/object/fotos/'+n,{method:'POST',headers:H({'Content-Type':f.type}),body:f});if(!u.ok){say('Error al subir '+f.name);return}o.fotos.push(SB_URL+'/storage/v1/object/public/fotos/'+n)}
-const r=await fetch(SB_URL+'/rest/v1/propiedades',{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify(o)});
-if(r.ok){say('Propiedad guardada ✔');e.target.reset();list()}else say('Error al guardar: '+await r.text())};
+let EDIT=null;
+function mode(p){EDIT=p;$('ft').textContent=p?'Editando: '+p.titulo:'Nueva propiedad';$('sv').textContent=p?'Guardar cambios':'Guardar propiedad';$('cn').style.display=p?'inline-block':'none';$('rpl').style.display=p?'flex':'none';$('rp').checked=false}
+$('cn').onclick=()=>{$('f').reset();mode(null);say('')};
+async function list(){const r=await fetch(SB_URL+'/rest/v1/propiedades?select=*&order=creado.desc',{headers:H()});if(r.status===401){$('out').click();return}
+const d=await r.json();$('ls').innerHTML='';d.forEach(p=>{const row=document.createElement('div');row.className='it';const s=document.createElement('span');s.textContent=`${p.titulo} · ${p.operacion} · ${p.categoria}${p.publicada?'':' · (oculta)'}`;const g=document.createElement('span');
+const ed=document.createElement('button');ed.className='s';ed.textContent='Editar';ed.onclick=()=>{const f=$('f').elements;['titulo','operacion','categoria','precio','moneda','periodo','direccion','descripcion','recamaras','banos','terreno_m2','construccion_m2'].forEach(k=>f[k].value=p[k]??(k==='periodo'?'mes':''));f.publicada.checked=!!p.publicada;mode(p);say('Editando. Si no agregas fotos, se conservan las actuales ('+(p.fotos||[]).length+').');scrollTo(0,0)};
+const b=document.createElement('button');b.className='s';b.textContent='Eliminar';b.style.marginLeft='8px';b.onclick=async()=>{if(!confirm('¿Eliminar "'+p.titulo+'"?'))return;await fetch(SB_URL+'/rest/v1/propiedades?id=eq.'+p.id,{method:'DELETE',headers:H()});list()};g.append(ed,b);row.append(s,g);$('ls').append(row)})}
+$('f').onsubmit=async e=>{e.preventDefault();say('Guardando…');const fd=new FormData(e.target),o={};
+fd.forEach((v,k)=>{o[k]=v===''?null:v});o.publicada=fd.has('publicada');['precio','recamaras','banos','terreno_m2','construccion_m2'].forEach(k=>{if(o[k]!=null)o[k]=Number(o[k])});
+const nuevas=[];for(const f of $('ph').files){const n=Date.now()+'-'+f.name.replace(/[^\w.-]/g,'_');const u=await fetch(SB_URL+'/storage/v1/object/fotos/'+n,{method:'POST',headers:H({'Content-Type':f.type}),body:f});if(!u.ok){say('Error al subir '+f.name);return}nuevas.push(SB_URL+'/storage/v1/object/public/fotos/'+n)}
+const url=SB_URL+'/rest/v1/propiedades'+(EDIT?'?id=eq.'+EDIT.id:'');
+if(EDIT){o.fotos=$('rp').checked?nuevas:[...(EDIT.fotos||[]),...nuevas]}else o.fotos=nuevas;
+const r=await fetch(url,{method:EDIT?'PATCH':'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify(o)});
+if(r.ok){say(EDIT?'Cambios guardados ✔':'Propiedad guardada ✔');e.target.reset();mode(null);list()}else say('Error al guardar: '+await r.text())};
 show();
 </script></div></body></html>

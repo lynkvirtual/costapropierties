@@ -57,10 +57,11 @@ const SERV=['Desarrollos inmobiliarios','Lotificaciones','Avalúos','Compra y ve
 const CATS=['Casas','Departamentos','Terrenos','Locales','Desarrollos','Rentas vacacionales'];
 const $=document.getElementById('app');let DATA=[],F={op:'',cat:''};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const per=p=>p.operacion==='renta'?({dia:' / día',semana:' / semana',mes:' / mes'}[p.periodo||'mes']):'';
 const money=p=>p.precio?new Intl.NumberFormat('es-MX').format(p.precio)+' '+esc(p.moneda||'MXN'):'Consultar precio';
 async function load(){try{const r=await fetch(SB_URL+'/rest/v1/propiedades?publicada=eq.true&order=creado.desc',{headers:{apikey:SB_KEY}});DATA=r.ok?await r.json():[]}catch(e){DATA=[]}route()}
 function reveal(){const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');o.unobserve(e.target)}}),{threshold:.12});document.querySelectorAll('.rv').forEach(x=>o.observe(x))}
-function card(p){return `<a class="card rv" href="#/p/${p.id}"><div class="ph" style="${p.fotos&&p.fotos[0]?`background-image:url('${esc(p.fotos[0])}')`:''}"><span class="tag">${esc(p.operacion)}</span></div><small>${esc(p.categoria)} · ${esc((p.direccion||'').split(',')[0])}</small><h3>${esc(p.titulo)}</h3><b>${money(p)}${p.operacion==='renta'?' / mes':''}</b></a>`}
+function card(p){return `<a class="card rv" href="#/p/${p.id}"><div class="ph" style="${p.fotos&&p.fotos[0]?`background-image:url('${esc(p.fotos[0])}')`:''}"><span class="tag">${esc(p.operacion)}</span></div><small>${esc(p.categoria)} · ${esc((p.direccion||'').split(',')[0])}</small><h3>${esc(p.titulo)}</h3><b>${money(p)}${per(p)}</b></a>`}
 function home(){const L=DATA.filter(p=>(!F.op||p.operacion===F.op)&&(!F.cat||p.categoria===F.cat));
 $.innerHTML=`<div class="hero"><img class="hl" src="logo.png" alt="Costa Properties Ixtapa Bienes Raíces"><small style="letter-spacing:.24em;color:#c9d6ec">BIENES RAÍCES · IXTAPA–ZIHUATANEJO</small><h1>Un lugar para vivir frente al Pacífico.</h1><p>Compra, renta y desarrollo de propiedades en la Costa Grande de Guerrero, con asesoría jurídica y administración de principio a fin.</p><div><a class="btn w" href="#propiedades">Ver propiedades</a> <a class="btn o" href="https://wa.me/${WA}">WhatsApp</a></div></div>
 <section id="propiedades"><div class="bar rv"><h2>Propiedades</h2><div class="chips">${[['','Todas'],['compra','Compra'],['renta','Renta']].map(([v,t])=>`<button class="chip ${F.op===v?'on':''}" data-op="${v}">${t}</button>`).join('')}</div></div>
@@ -79,7 +80,7 @@ ${f.length?`<div class="gal"><img src="${esc(f[0])}" alt="${esc(p.titulo)}">${f[
 <div class="cols"><div><p style="font-size:18px;line-height:1.7;white-space:pre-line">${esc(p.descripcion)}</p><div class="specs">${sp.map(s=>`<div>${s[0]}<b>${esc(s[1])}</b></div>`).join('')}</div>
 ${p.direccion?`<h3 style="font-size:32px;margin-bottom:8px">Ubicación</h3><p>${esc(p.direccion)}</p><iframe loading="lazy" title="Mapa" src="https://maps.google.com/maps?q=${encodeURIComponent(p.direccion)}&output=embed"></iframe>`:''}
 ${f.length>3?`<div class="gal" style="grid-template-columns:1fr 1fr">${f.slice(3).map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>`:''}</div>
-<aside><small>PRECIO</small><h2 style="font-size:46px">${money(p)}${p.operacion==='renta'?'<small> /mes</small>':''}</h2><a class="btn" href="https://wa.me/${WA}?text=${msg}">${p.operacion==='renta'?'Reservar / consultar':'Información de compra'} por WhatsApp</a><small>Ing. Cosme Alberto Ramírez Aguilar · 331 436 5457</small></aside></div></section>`;scrollTo(0,0)}
+<aside><small>PRECIO</small><h2 style="font-size:46px">${money(p)}<small>${per(p)}</small></h2><a class="btn" href="https://wa.me/${WA}?text=${msg}">${p.operacion==='renta'?'Reservar / consultar':'Información de compra'} por WhatsApp</a><small>Ing. Cosme Alberto Ramírez Aguilar · 331 436 5457</small></aside></div></section>`;scrollTo(0,0)}
 function route(){const m=location.hash.match(/^#\/p\/(\d+)/);if(m)return detail(m[1]);document.title='Costa Properties Ixtapa | Bienes Raíces';home()}
 addEventListener('hashchange',()=>{if(!location.hash.startsWith('#/')&&document.getElementById(location.hash.slice(1)))return;route()});load();
 </script>
